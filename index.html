@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gelişmiş Pac-Man</title>
+    <style>
+        body {
+            background-color: #111;
+            color: white;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        #ui {
+            display: flex;
+            gap: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        canvas {
+            border: 4px solid blue;
+            background-color: black;
+            box-shadow: 0 0 20px rgba(0, 0, 255, 0.5);
+        }
+        #game-over-screen {
+            display: none;
+            position: absolute;
+            text-align: center;
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            border: 2px solid red;
+            border-radius: 10px;
+        }
+        button {
+            background-color: yellow;
+            color: black;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <div>Skor: <span id="score">0</span></div>
+        <div>Seviye: <span id="level">1</span></div>
+        <div>Can: <span id="lives">3</span></div>
+    </div>
+
+    <canvas id="gameCanvas" width="440" height="440"></canvas>
+
+    <div id="game-over-screen" id="gameOver">
+        <h1 style="color: red; margin: 0 0 10px 0;">OYUN BİTTİ</h1>
+        <p>Ulaştığın Seviye: <span id="finalLevel">1</span></p>
+        <p>Toplam Skor: <span id="finalScore">0</span></p>
+        <button onclick="resetGame()">Yeniden Başla</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        
+        const scoreEl = document.getElementById("score");
+        const levelEl = document.getElementById("level");
+        const livesEl = document.getElementById("lives");
+        const gameOverScreen = document.getElementById("game-over-screen");
+        const finalLevelEl = document.getElementById("finalLevel");
+        const finalScoreEl = document.getElementById("finalScore");
+
+        const tileSize = 20;
+        const rows = canvas.height / tileSize;
+        const cols = canvas.width / tileSize;
+
+        // Oyun Değişkenleri
+        let score = 0;
+        let level = 1;
+        let lives = 3;
+        let gameOver = false;
+        let pellets = [];
+        let ghosts = [];
+        
+        // Harita Tasarımı (1: Duvar, 0: Boşluk/Yem)
+        const map = [
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,0,1,1,1,0,1,1,0,1,1,1,0,1,1,1,0,1],
+            [1,0,1,1,1,0,1,1,1,0,1,1,0,1,1,1,0,1,1,1,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,0,1,0,1,1,1,1,1,1,0,1,0,1,1,1,0,1],
+            [1,0,0,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,0,0,1],
+            [1,1,1,1,1,0,1,1,1,0,1,1,0,1,1,1,0,1,1,1,1,1],
+            [1,1,1,1,1,0,1,0,0,0,0,0,0,0,0,1,0,1,1,1,1,1],
+            [1,1,1,1,1,0,1,0,1,1,0,0,1,1,0,1,0,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,0,1,0,1,1,1,1,1,1,0,1,0,1,1,1,1,1],
+            [1,1,1,1,1,0,1,0,0,0,0,0,0,0,0,1,0,1,1,1,1,1],
+            [1,1,1,1,1,0,1,0,1,1,1,1,1,1,0,1,0,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,1],
+            [1,0,1,1,1,0,1,1,1,0,1,1,0,1,1,1,0,1,1,1,0,1],
+            [1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1],
+            [1,1,0,0,1,0,1,0,1,1,1,1,1,1,0,1,0,1,0,0,1,1],
+            [1,0,0,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,0,0,1],
+            [1,0,1,1,1,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,0,1],
+            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ];
+
+        // Pac-Man Sınıfı
+        class Pacman {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = 10 * tileSize;
+                this.y = 16 * tileSize;
+                this.dirX = 0;
+                this.dirY = 0;
+                this.nextDirX = 0;
+                this.nextDirY = 0;
+                this.radius = tileSize / 2;
+                this.speed = 2;
+                this.angle = 0.2; 
+                this.mouthSpeed = 0.02;
+            }
+
+            update() {
+                // Dönüş payı kontrolü (Sadece tam karelerde yön değiştir)
+                if (this.x % tileSize === 0 && this.y % tileSize === 0) {
+                    if (!this.checkWall(this.nextDirX, this.nextDirY)) {
+                        this.dirX = this.nextDirX;
+                        this.dirY = this.nextDirY;
+                    }
+                }
+
+                // Duvara çarpmıyorsa ilerle
+                if (!this.checkWall(this.dirX, this.dirY)) {
+                    this.x += this.dirX * this.speed;
+                    this.y += this.dirY * this.speed;
+                }
+
+                // Ağız animasyonu
+                this.angle += this.mouthSpeed;
+                if (this.angle > 0.4 || this.angle < 0.05) {
+                    this.mouthSpeed = -this.mouthSpeed;
+                }
+            }
+
+            checkWall(dx, dy) {
+                let nextX = this.x + dx * this.speed;
+                let nextY = this.y + dy * this.speed;
+
+                let left = Math.floor(nextX / tileSize);
+                let right = Math.ceil(nextX / tileSize) - 1;
+                let top = Math.floor(nextY / tileSize);
+                let bottom = Math.ceil(nextY / tileSize) - 1;
+
+                // Sınır kontrolü ve harita kontrolü
+                if (left >= 0 && right < cols && top >= 0 && bottom < rows) {
+                    if (map[top][left] === 1 || map[top][right] === 1 || map[bottom][left] === 1 || map[bottom][right] === 1) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            draw() {
+                ctx.beginPath();
+                let rotation = 0;
+                if (this.dirX === 1) rotation = 0;
+                if (this.dirX === -1) rotation = Math.PI;
+                if (this.dirY === 1) rotation = Math.PI / 2;
+                if (this.dirY === -1) rotation = Math.PI * 1.5;
+
+                ctx.arc(
+                    this.x + this.radius, 
+                    this.y + this.radius, 
+                    this.radius - 2, 
+                    rotation + this.angle * Math.PI, 
+                    rotation + (2 - this.angle) * Math.PI
+                );
+                ctx.lineTo(this.x + this.radius, this.y + this.radius);
+                ctx.fillStyle = "yellow";
+                ctx.fill();
+                ctx.closePath();
+            }
+        }
+
+        // Hayalet (Canavar) Sınıfı
+        class Ghost {
+            constructor(color, speed) {
+                this.color = color;
+                this.speed = speed;
+                this.reset();
+            }
+
+            reset() {
+                // Rastgele bir başlangıç noktası seç (Haritanın ortalarından)
+                this.x = 10 * tileSize;
+                this.y = 10 * tileSize;
+                this.dirX = 1;
+                this.dirY = 0;
+            }
+
+            update() {
+                // Kavşak noktalarında yön değiştirme mantığı
+                if (this.x % tileSize === 0 && this.y % tileSize === 0) {
+                    const directions = [
+                        {x: 1, y: 0}, {x: -1, y: 0}, {x: 0, y: 1}, {x: 0, y: -1}
+                    ];
+                    let validMoves = directions.filter(dir => !this.checkWall(dir.x, dir.y));
+                    
+                    // Geri dönmeyi engellemeye çalış (opsiyonel ama daha iyi yapay zeka)
+                    if (validMoves.length > 1) {
+                        validMoves = validMoves.filter(dir => dir.x !== -this.dirX || dir.y !== -this.dirY);
+                    }
+
+                    // Rastgele geçerli bir yön seç
+                    if (validMoves.length > 0) {
+                        let move = validMoves[Math.floor(Math.random() * validMoves.length)];
+                        this.dirX = move.x;
+                        this.dirY = move.y;
+                    }
+                }
+
+                this.x += this.dirX * this.speed;
+                this.y += this.dirY * this.speed;
+            }
+
+            checkWall(dx, dy) {
+                let nextX = this.x + dx * this.speed;
+                let nextY = this.y + dy * this.speed;
+                let left = Math.floor(nextX / tileSize);
+                let right = Math.ceil(nextX / tileSize) - 1;
+                let top = Math.floor(nextY / tileSize);
+                let bottom = Math.ceil(nextY / tileSize) - 1;
+
+                if (left >= 0 && right < cols && top >= 0 && bottom < rows) {
+                    return map[top][left] === 1 || map[top][right] === 1 || map[bottom][left] === 1 || map[bottom][right] === 1;
+                }
+                return true;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x + tileSize/2, this.y + tileSize/2, tileSize/2 - 2, 0, Math.PI, true);
+                ctx.lineTo(this.x + 2, this.y + tileSize);
+                ctx.lineTo(this.x + tileSize - 2, this.y + tileSize);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.closePath();
+
+                // Gözler
+                ctx.beginPath();
+                ctx.arc(this.x + 6, this.y + 6, 2, 0, Math.PI * 2);
+                ctx.arc(this.x + 14, this.y + 6, 2, 0, Math.PI * 2);
+                ctx.fillStyle = "white";
+                ctx.fill();
+            }
+        }
+
+        const player = new Pacman();
+
+        // Haritadaki yemleri yükleme fonksiyonu
+        function initPellets() {
+            pellets = [];
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (map[r][c] === 0) {
+                        pellets.push({ x: c * tileSize + tileSize / 2, y: r * tileSize + tileSize / 2 });
+                    }
+                }
+            }
+        }
+
+        // Seviyeye göre hayaletleri oluşturma
+        function initGhosts() {
+            ghosts = [];
+            const colors = ["red", "cyan", "pink", "orange", "green", "purple", "white"];
+            // Her seviyede hız biraz artar (Temel hız: 1, her seviyede +0.2)
+            let currentSpeed = 1 + (level * 0.2); 
+            if(currentSpeed > 2) currentSpeed = 2; // Pacman'den hızlı olmasınlar (maksimum limit)
+
+            for (let i = 0; i < level; i++) {
+                let color = colors[i % colors.length];
+                ghosts.push(new Ghost(color, currentSpeed));
+            }
+        }
+
+        // Klavye Dinleyicisi
+        window.addEventListener("keydown", e => {
+            switch (e.key) {
+                case "ArrowUp":    player.nextDirX = 0;  player.nextDirY = -1; break;
+                case "ArrowDown":  player.nextDirX = 0;  player.nextDirY = 1;  break;
+                case "ArrowLeft":  player.nextDirX = -1; player.nextDirY = 0;  break;
+                case "ArrowRight": player.nextDirX = 1;  player.nextDirY = 0;  break;
+            }
+        });
+
+        function nextLevel() {
+            level++;
+            // Her 5 levelde bir can ekle
+            if (level % 5 === 0) {
+                lives++;
+            }
+            
+            levelEl.innerText = level;
+            livesEl.innerText = lives;
+            
+            player.reset();
+            initPellets();
+            initGhosts();
+        }
+
+        function resetGame() {
+            score = 0;
+            level = 1;
+            lives = 3;
+            gameOver = false;
+            gameOverScreen.style.display = "none";
+            
+            scoreEl.innerText = score;
+            levelEl.innerText = level;
+            livesEl.innerText = lives;
+
+            player.reset();
+            initPellets();
+            initGhosts();
+            gameLoop();
+        }
+
+        // Çarpışma algılama (Pacman ve Hayaletler)
+        function checkCollisions() {
+            ghosts.forEach(ghost => {
+                let dist = Math.hypot((player.x - ghost.x), (player.y - ghost.y));
+                if (dist < tileSize - 5) {
+                    lives--;
+                    livesEl.innerText = lives;
+                    if (lives <= 0) {
+                        gameOver = true;
+                        finalLevelEl.innerText = level;
+                        finalScoreEl.innerText = score;
+                        gameOverScreen.style.display = "block";
+                    } else {
+                        // Can gittiğinde Pacman ve hayaletleri sıfırla ama yemleri koru
+                        player.reset();
+                        ghosts.forEach(g => g.reset());
+                    }
+                }
+            });
+        }
+
+        // Ana Oyun Döngüsü
+        function gameLoop() {
+            if (gameOver) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Haritayı (Duvarları) Çiz
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (map[r][c] === 1) {
+                        ctx.fillStyle = "blue";
+                        ctx.fillRect(c * tileSize, r * tileSize, tileSize, tileSize);
+                    }
+                }
+            }
+
+            // 2. Yemleri Çiz ve Kontrol Et
+            for (let i = pellets.length - 1; i >= 0; i--) {
+                let p = pellets[i];
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = "#ffb8ae";
+                ctx.fill();
+                ctx.closePath();
+
+                // Pacman yemi yedi mi?
+                let pcenter = tileSize / 2;
+                let dist = Math.hypot((player.x + pcenter) - p.x, (player.y + pcenter) - p.y);
+                if (dist < player.radius) {
+                    pellets.splice(i, 1);
+                    score += 10;
+                    scoreEl.innerText = score;
+                }
+            }
+
+            // Seviye Temizleme Kontrolü
+            if (pellets.length === 0) {
+                nextLevel();
+            }
+
+            // 3. Pacman Güncelle ve Çiz
+            player.update();
+            player.draw();
+
+            // 4. Hayaletleri Güncelle ve Çiz
+            ghosts.forEach(ghost => {
+                ghost.update();
+                ghost.draw();
+            });
+
+            // 5. Çarpışmaları Yönet
+            checkCollisions();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Oyunu ilk kez başlat
+        initPellets();
+        initGhosts();
+        gameLoop();
+    </script>
+</body>
+</html>
