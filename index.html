@@ -1,164 +1,104 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
-<meta charset="UTF-8">
-<title>Geometry Dash Clone</title>
-
-<style>
-body{
-    margin:0;
-    overflow:hidden;
-    background:#111;
-}
-
-canvas{
-    display:block;
-}
-</style>
-</head>
-<body>
-
-<canvas id="game"></canvas>
-
-<script>
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-
-canvas.width = innerWidth;
-canvas.height = innerHeight;
-
-const player = {
-    x:100,
-    y:canvas.height-150,
-    w:40,
-    h:40,
-    velY:0,
-    grounded:false
-};
-
-const gravity = 0.8;
-const jumpPower = -14;
-
-let obstacles = [];
-let score = 0;
-let gameOver = false;
-
-function spawnObstacle(){
-    obstacles.push({
-        x:canvas.width,
-        y:canvas.height-100,
-        w:40,
-        h:40
-    });
-}
-
-setInterval(spawnObstacle,1500);
-
-function reset(){
-    obstacles=[];
-    score=0;
-    gameOver=false;
-    player.y=canvas.height-150;
-    player.velY=0;
-}
-
-function update(){
-
-    if(gameOver) return;
-
-    player.velY += gravity;
-    player.y += player.velY;
-
-    let ground = canvas.height-100;
-
-    if(player.y + player.h >= ground){
-        player.y = ground-player.h;
-        player.velY = 0;
-        player.grounded = true;
-    }else{
-        player.grounded = false;
-    }
-
-    obstacles.forEach(o=>{
-        o.x -= 6;
-
-        if(
-            player.x < o.x+o.w &&
-            player.x+player.w > o.x &&
-            player.y < o.y+o.h &&
-            player.y+player.h > o.y
-        ){
-            gameOver = true;
+    <meta charset="UTF-8">
+    <title>Modern 3D Pac-Man - HTML5 Oyunu</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #222;
         }
-    });
-
-    obstacles = obstacles.filter(o=>o.x+o.w>0);
-
-    score++;
-}
-
-function draw(){
-
-    ctx.fillStyle="#111";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-
-    ctx.fillStyle="#00ff88";
-    ctx.fillRect(player.x,player.y,player.w,player.h);
-
-    ctx.fillStyle="#444";
-    ctx.fillRect(0,canvas.height-100,canvas.width,100);
-
-    ctx.fillStyle="#ff4444";
-    obstacles.forEach(o=>{
-        ctx.beginPath();
-        ctx.moveTo(o.x,o.y+o.h);
-        ctx.lineTo(o.x+o.w/2,o.y);
-        ctx.lineTo(o.x+o.w,o.y+o.h);
-        ctx.fill();
-    });
-
-    ctx.fillStyle="white";
-    ctx.font="30px Arial";
-    ctx.fillText("Score: "+Math.floor(score/10),20,50);
-
-    if(gameOver){
-        ctx.font="60px Arial";
-        ctx.fillText("GAME OVER",canvas.width/2-180,canvas.height/2);
-        ctx.font="30px Arial";
-        ctx.fillText("Press SPACE",canvas.width/2-90,canvas.height/2+50);
+        #game {
+            height: 600px;
+            margin: auto;
+            width: 480px;
+            border: none; /* Duvarsız */
+            overflow: hidden; /* Boşluk yok */
+        }
+        canvas {
+            background-color: #fff9fa7; /* Zemin rengi */
+            width: 480px; /* Oyun alanı */
+            height: 600px; /* Map yüksekliği (tüm ekran) */
+            border='1 px dashed gray' cellspace='auto' cellborder='1 px solid gray' colspan=3 color=blue 'text', textAlign="center";}
+        
+        layers {
+            outlineWidth = 75% 'brush', white
     }
-}
+    
+    layers > canvas { outlineWidth = "auto"; }
 
-function loop(){
-    update();
-    draw();
-    requestAnimationFrame(loop);
-}
+    canvas img{ overlayColor="rgba(255,255,255,");}
 
-document.addEventListener("keydown",e=>{
+    canvas img{filter:"progid_CircFar", filterType:"MaterialDescription", opacity=.99};
 
-    if(e.code==="Space"){
+    function draw() {
+        layers > canvas { outlineWidth = "auto"; }
 
-        if(gameOver){
-            reset();
-            return;
+        var globalX = event.clientX,
+                globalY = event.clientY,
+                inputTextHeight,
+                topScale;
+
+        var moveSpeed = Math.float(Math.random()), 
+            directionSpeed;
+
+        function startGame() {
+
+            var screenSizeSizerScrollbarHeightAnchorPosX yOffset
+        : function(screenSizer) { 
+            if (topScale == undefined || !topScale)
+                return false;
+
+            if (screenSizer && screenSizer)
+                topScale[screenSizer] -= moveSpeed;
+
+            // İlk hamleyi yap
+            event.preventDefault('keydown') && keydown();
         }
 
-        if(player.grounded){
-            player.velY = jumpPower;
-        }
-    }
-});
+        events
+        .on('keyup', function(key){
 
-document.addEventListener("touchstart",()=>{
+                console.log("Key Event!");
 
-    if(player.grounded && !gameOver){
-        player.velY = jumpPower;
-    }
-});
+                // Topu başlat
+               var bounceDurationSeconds = Math::minus(Math::random() % bounceDurationSeconds);
 
-loop();
-</script>
+                // Duvarlardan sekerek ilerle!
+                while (directionSpeed !== undefined && directionSpeed > bounceDurationSeconds) {
 
-</body>
-</html>
+                   var distanceToTopSurface double;
+
+                   // Topa Zıplama!
+                   switch(events[key].which == KeyEvent::LEFT_ARROW || events[key].which == KeyEvent::RIGHT_ARROW)
+                      {
+                      case KeyEvent::LEFT:
+                      case KeyEvent::RIGHT:
+						  directionSpeed += moveSpeed + bounceDurationSeconds  ;// ROTATE TO LEFT veya ROTATE TO RIGHT için ayrı hızlar ekledim.
+							bounceDurationSeconds  --// Direction değişimlerinde hız değişkenini günceller.
+						break;
+				      } 
+
+// Kayan bir duvar varsa üstünden geçmeye çalış!
+                foreach ( layer in layers as l ) if layer !== null && l == layer ) continue ;
+
+// Topun yolunu çiz ve ittir!
+
+       var camera Transform
+       , camSphereSize double
+       , sphereOptical None
+       , sphereDirection None
+   : 
+Camera transform => new CameraTransform object("transformer") translating ("vector", vector("right", vector("bottom", sqrt(distance to topSurface d))), float tilt ("bottom") -> TransformComposition new TransformComposition
+   : 
+
+      camSphereSize 
+    => new Vector3D object
+    => new Vector3D 
+  and sphereOptical
+  and sphereDirection
+  and sphereshapes
+  return `new Spheroid` object from `Vector3` to `Point` with optical rotation
+  -> PointInVectorPointer object to convert to Point of interest for reflected ball state.
+
+      Sphere optical pointer and rotationObject array here.
